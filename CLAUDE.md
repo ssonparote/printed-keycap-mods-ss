@@ -41,25 +41,39 @@ python3 make-3mf.py
 | T1L, T1R | 1u thumb keys (left/right) | ✅ Dish + chop fixed (verify render) |
 | T1L-trap, T1R-trap | Trapezoidal outer thumb keys | 🔜 Future task |
 
-## `printable()` module
+## Orientation model: `orient()` / `bed_cut()` / `printable()`
 
-The correct working `printable()` is from commit `91be5bb` ("add lateral..."). It has three transforms + two cuts:
+The bed-adhesion cuts are **baked into the cap's native upright frame** so the cap you
+inspect upright *is* the final printed geometry (the cut is part of the design, not bolted
+on after tilting). Three modules in `CS/CS.scad`:
 
-1. Z orientation: `rotate([0,0,other ? -45 : 135])` — **no** `fans_on_left` term
-2. Y tilt: `rotate([0,(other ? 1 : -1)*45,0])` — tilts 45° for printing on its side
-3. Bottom cut: `translate([0,0,-h/2 - cut_distance]) cube([40,40,h], center=true)`
-4. Side cut: `rotate([0,90,-45]) translate([0,0,-h/2 - cut_distance]) cube([40,40,h], center=true)`
+- `orient(other)` — the known-good print tilt (from commit `91be5bb`):
+  `rotate([0,0,other?-45:135]) rotate([0,(other?1:-1)*45,0])`. 45° about Y onto its side,
+  then spin flat onto the bed.
+- `bed_cut(other)` — applies `orient()`, subtracts the two cut cubes in the print frame,
+  then applies `orient⁻¹` so the cap returns upright **carrying** the angled flat print
+  faces. Cut tools: `translate([0,0,-h/2-cut_distance]) cube([40,40,h])` and
+  `rotate([0,90,-45]) translate(...) cube(...)`, with `h=5, cut_distance=4.9`.
+- `printable(other)` — now **pure orientation**: `if (print) orient(other) children();
+  else children();`.
 
-**Commit history of `printable()` breakage** — `CS/CS.scad` HEAD (`8e94c43`, last night) changed `printable()` when adding Sofle MX thumb keys, removing the Z rotation and changing the second cut to `rotate([90,0,0])`. This broke R3 (and all keys). STLs for R3 must be rendered using the `91be5bb` version of CS.scad until the HEAD version is fixed.
+Pipeline is `printable() bed_cut() CS(type)`.
 
-**To render with the correct printable():**
+**Render modes** (flag `print`, default true):
 ```bash
-git show 91be5bb:CS/CS.scad > CS/CS-tmp.scad
-/Applications/OpenSCAD-2021.01.app/Contents/MacOS/OpenSCAD -q --render -Dkeycap=\"R3\" -o things/CS-R3.stl CS/CS-tmp.scad
-rm CS/CS-tmp.scad
+OPENSCAD=/Applications/OpenSCAD-2021.01.app/Contents/MacOS/OpenSCAD
+# Design validation — cap upright, cuts baked in:
+$OPENSCAD -o /tmp/R3.png --imgsize=800,800 --camera=0,0,0,62,0,25,95 -Dprint=false -Dkeycap=\"R3\" CS/CS.scad
+# Print-ready STL — tilted onto the bed:
+$OPENSCAD -q --render -Dprint=true -Dkeycap=\"R3\" -o things/CS-R3.stl CS/CS.scad
 ```
+The `8e94c43` breakage and the `git show 91be5bb` temp-file workaround are **obsolete** —
+the on-disk `CS/CS.scad` now renders correctly and matches the `91be5bb` print exactly
+(verified: identical STL bounding box and vertex count).
 
-**Do not** use the committed `CS/CS.scad` (HEAD) to render row keys until `printable()` is fixed.
+**Open (Phase 2):** make the two cuts symmetric and size the post-cut footprint to the
+intended oversized ~18.15 mm (caps are intentionally larger than standard MX for tighter
+gaps). Base dim lives in the submodule profile `keyParameters[keyID][0..1]`.
 
 ## TWO DIFFERENT PROFILE FILES — critical distinction
 
