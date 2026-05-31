@@ -38,15 +38,28 @@ python3 make-3mf.py
 | Type | Description | Status |
 |------|-------------|--------|
 | R1, R2, R3, R3-homing, R4 | Standard row keys | ✅ Working |
-| T1L, T1R | 1u thumb keys (left/right) | ⚠️ See below |
+| T1L, T1R | 1u thumb keys (left/right) | ✅ Dish + chop fixed (verify render) |
 | T1L-trap, T1R-trap | Trapezoidal outer thumb keys | 🔜 Future task |
 
 ## `printable()` module
 
-Applied at `printable() CS(keycap)` — tilts the keycap 45° around the Y axis so a flat face rests on the print bed, then makes two chamfer cuts for bed adhesion:
+The correct working `printable()` is from commit `91be5bb` ("add lateral..."). It has three transforms + two cuts:
 
-1. Bottom cut: `translate([0,0,-h/2 - cut_distance]) cube(...)` — trims below z=-4.9
-2. Front cut: `rotate([90,0,0]) translate([0,0,-h/2 - cut_distance]) cube(...)` — trims the front face (y > 4.9), straight cut (no XY diagonal needed)
+1. Z orientation: `rotate([0,0,other ? -45 : 135])` — **no** `fans_on_left` term
+2. Y tilt: `rotate([0,(other ? 1 : -1)*45,0])` — tilts 45° for printing on its side
+3. Bottom cut: `translate([0,0,-h/2 - cut_distance]) cube([40,40,h], center=true)`
+4. Side cut: `rotate([0,90,-45]) translate([0,0,-h/2 - cut_distance]) cube([40,40,h], center=true)`
+
+**Commit history of `printable()` breakage** — `CS/CS.scad` HEAD (`8e94c43`, last night) changed `printable()` when adding Sofle MX thumb keys, removing the Z rotation and changing the second cut to `rotate([90,0,0])`. This broke R3 (and all keys). STLs for R3 must be rendered using the `91be5bb` version of CS.scad until the HEAD version is fixed.
+
+**To render with the correct printable():**
+```bash
+git show 91be5bb:CS/CS.scad > CS/CS-tmp.scad
+/Applications/OpenSCAD-2021.01.app/Contents/MacOS/OpenSCAD -q --render -Dkeycap=\"R3\" -o things/CS-R3.stl CS/CS-tmp.scad
+rm CS/CS-tmp.scad
+```
+
+**Do not** use the committed `CS/CS.scad` (HEAD) to render row keys until `printable()` is fixed.
 
 ## TWO DIFFERENT PROFILE FILES — critical distinction
 
@@ -57,36 +70,28 @@ Applied at `printable() CS(keycap)` — tilts the keycap 45° around the Y axis 
 
 These are fundamentally different `keycap()` implementations. **Do not assume parameter changes in one apply to the other.**
 
-## ⚠️ UNRESOLVED: T1L / T1R shelf issue
+## T1L / T1R shelf — root cause and fix applied
 
-**Problem**: T1L and T1R have a "shelf" — a flat rectangular ledge protruding from the curved keycap body. Row keys R1-R4 are fine.
+**Problem**: T1L and T1R had a "shelf" — a flat rectangular ledge protruding from the curved keycap body. Row keys R1-R4 are fine.
 
-**Root cause**: `Choc_Chicago_Steno_Thumb.scad` keyID=2 was originally Choc-sized (17.20×16.00mm) with its own thumb dish — and worked correctly. An earlier session scaled keyParameters to 18.05×18.05mm (keeping XSkew=-3, YSkew=-3) which introduced the shelf. The Thumb profile's `DishShape2` with tangent arc params works at Choc size but breaks at MX size.
+**Root cause (confirmed)**: The `DishShape2` function used by the Thumb profile requires larger arc values (`FArcIn`/`FArcFn`) than the simpler `DishShape` used by row keys. When the dish params for keyID=2 were replaced with a copy of the R3 flat row params (`FArcIn=11, FArcFn=15`), the DishShape2 cutting solid no longer spanned the full key top — leaving the shelf. Numerical analysis showed the profile y-span dropped from 27.7–32.5 (original, working) to 23.4–27.1 (broken).
 
-**Original keyID=2 in git (Choc-sized, no shelf):**
-- keyParameters: `[17.20, 16.00, 4.25, 3.25, 5.0, -.5, 0.0, -3, -3, -0, 2, 2, .10, 2, .10, 2, 2, 2]`
-- dishParameters: `[5, 5.5, 0, -40, 7, 1.7, 16, 18, 2, 5.5, 3.5, 5, -50, 16, 18, 2, 5, 3.75, 2, 3.75, 2, 199, 210]`
+**Fix applied** (`Choc_Chicago_Steno_Thumb.scad` line 82): Restored the original Choc T1 dish params:
+```
+[5, 5.5, 0, -40, 7, 1.7, 16, 18, 2, 5.5, 3.5, 5, -50, 16, 18, 2, 5, 3.75, 2, 3.75, 2, 199, 210]
+```
+Key changes: FArcIn 11→16, FArcFn 15→18, FPit1 5→0, FTanFin 5→3.75, BTanInit 4→2, PhiInit 200→199.
+These worked at Choc size (12.95×12.75mm top); MX top is 12.45×13.05mm — nearly identical.
 
-The original dish had FPit1=0 (no forward pitch), FArcIn=16, FArcFn=18 — these are the thumb-specific values that produced the correct shape.
+**Current state of keyID=2:**
+- keyParameters: `[18.05, 18.05, 5.6, 5, 4.6, 0, 0, 0, 0, -0, 2, 2.5, .10, 3, .10, 3, 2, 2]` (XSkew=0, YSkew=0 — correct, no lean)
+- dishParameters: restored original Choc T1 thumb dish (line 82)
 
-**What has been changed so far (current state of repo):**
+**How to verify**: Open `Choc_Chicago_Steno_Thumb.scad` with `keyID=2, visualizeDish=true, crossSection=true`. The dish cutting solid should span all the way to the edges of the key top with no flat ledge remaining. Compare with keyID=0 (working original Choc thumb) as reference shape.
 
-1. `CS/CS.scad` `printable()` line 111: second cut changed from buggy `rotate([0,-90,0])` → `rotate([90,0,0])`. This is correct (front face chamfer, no XY diagonal needed). Do NOT revert this.
+**If shelf persists after this fix**: Scale FArcIn/FArcFn slightly upward (try 17/19) — the MX key length (13.05mm) is slightly longer than original (12.75mm). Keep all other original params unchanged.
 
-2. `Choc_Chicago_Steno_Thumb.scad` keyID=2 `keyParameters`: currently set to Levee R3 params at MX scale:
-   ```
-   [18.05, 18.05, 5.6, 5, 4.6, 0, 0, 0, 0, -0, 2, 2.5, .10, 3, .10, 3, 2, 2]
-   ```
-   (XSkew=0, YSkew=0, WSft=0 — removed the -3/-3/-0.5 that caused the diagonal lean)
-
-3. `Choc_Chicago_Steno_Thumb.scad` keyID=2 `dishParameters`: changed to Levee R3 flat dish (copy of dishParameters[1]):
-   ```
-   [4.5, 4, 5, -40, 7, 1.7, 11, 15, 2, 4.5, 4, 5, -40, 11, 15, 2, 4, 5, 4, 5, 2, 200, 210]
-   ```
-
-**What still needs fixing**: The shelf persists. The Thumb profile's `DishShape2` geometry at 18.05mm still doesn't produce a clean keycap matching the original Levee Steno thumb shape. The fix must stay within `Choc_Chicago_Steno_Thumb.scad` — retaining the thumb-specific geometry — and correctly scale the dish/body parameters for MX (18.05mm) dimensions.
-
-**Key insight for next session**: The original Levee Steno thumb at Choc size (17.20×16.00mm, keyID=0 or keyID=1 in the Thumb file) worked correctly. The `DishShape2` tangent arc parameters (`PhiInit`, `PhiFin`, `FTanRadius`, `BTanRadius`) need to be scaled for 18.05mm. Compare working Choc-size dish params vs. what's needed at MX scale. The non-thumb `Choc_Chicago_Steno.scad` R3 at 18.05mm uses the simpler `DishShape` function — studying how it scales might give clues.
+**Do NOT use** `rotate([90,0,0])` for the second cut — that was introduced by the broken `8e94c43` commit and cuts the wrong plane.
 
 ## Sofle MX thumb cluster
 
