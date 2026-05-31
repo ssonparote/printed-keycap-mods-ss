@@ -32,6 +32,8 @@ module CS_from_source(type="R3") {
     sculpted_key(type);
   } else if (type == "R3-homing") {
     sculpted_key("R3", homing=true);
+  } else if (type == "R1") {
+    mirror([0,1,0]) sculpted_key(type);
   } else if (type == "R2") {
     mirror([0,1,0]) sculpted_key("R4");
   } else if (type == "R4") {
@@ -60,6 +62,10 @@ module CS_from_source(type="R3") {
     rotate([0,0,180]) invert_offset() thumb_key("T1");
   } else if (type == "T1R") {
     mirror([1,0,0]) invert_offset(x=false) thumb_key("T1");
+  } else if (type == "T1L-trap") {
+    rotate([0,0,180]) invert_offset() thumb_key_trap();
+  } else if (type == "T1R-trap") {
+    mirror([1,0,0]) invert_offset(x=false) thumb_key_trap();
   } else if (type == "R3x") {
     convex_key(type);
   } else {
@@ -97,16 +103,12 @@ module CS_prerendered(type="R3") {
 
 module printable(type, other=false, trim=true) {
   difference(){
-    rotate([0,0,(other ? -45 : 135) + (fans_on_left ? -90 : 0)])
-      rotate([0,(other ? 1 : -1)*45,0]) children();
-
+    rotate([0,(other ? 1 : -1)*45,0]) children();
     if(trim){
-      // nip off the edge so the keycap sticks better to the print bed
       h=5;
-      cut_distance=4.9; // 5.6 is minimally invasive, but not as effective
+      cut_distance=4.9;
       translate([0,0,-h/2 - cut_distance]) cube([40,40,h], center=true);
-      rotate([90,0,-45])
-	translate([0,0,-h/2 - cut_distance]) cube([40,40,h], center=true);
+      rotate([90,0,0]) translate([0,0,-h/2 - cut_distance]) cube([40,40,h], center=true);
     }
   }
 }

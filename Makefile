@@ -32,12 +32,19 @@ cs-index-solo: $(addsuffix .stl,$(addprefix things/CS-$(KEYBOARD)-index-,$(TPKEY
 
 CS_TP_TARGETS=$(addsuffix .stl,$(addprefix things/CS-$(KEYBOARD)-middle-,$(TPKEYS))) $(addsuffix .stl,$(addprefix things/CS-$(KEYBOARD)-index-,$(TPKEYS)))
 
-# skipping redundant key sculpts: R4 R2R R3R R4R
-CS_PROFILE=R2 R3 R3-homing R2L R3L R4L T1L T1R R3x
+# skipping redundant key sculpts: R2R R3R R4R
+CS_PROFILE=R1 R2 R3 R3-homing R4 T1L T1R T1L-trap T1R-trap
 
 CS_TARGETS=$(addsuffix .stl,$(addprefix things/CS-,$(CS_PROFILE)))
 
 cs: $(CS_TARGETS)
+
+SOFLE_PROFILES=R1 R2 R3 R3-homing R4 T1L T1R
+SOFLE_TARGETS=$(addsuffix .stl,$(addprefix things/sofle-,$(SOFLE_PROFILES)))
+
+sofle-plates: $(SOFLE_TARGETS)
+
+.PHONY: sofle-plates
 
 CS/CS.scad: includes/PseudoMakeMeKeyCapProfiles/skin.scad includes/PseudoMakeMeKeyCapProfiles/sweep.scad
 
@@ -73,6 +80,9 @@ things/LPX-offset-%.stl: LPX/LPX.scad
 
 things/CS-%.stl: CS/CS.scad
 	$(OPENSCAD) -q --render -d .cs-$*.depends -Dkeycap=\"$*\" -o $@ $<
+
+things/sofle-%.stl: sofle-plate.scad things/CS-%.stl
+	$(OPENSCAD) -q --render -Dprofile=\"$*\" -o $@ $<
 
 includes/PseudoMakeMeKeyCapProfiles/skin.scad: includes/PseudoMakeMeKeyCapProfiles/list-comprehension-demos/skin.scad
 	cp $< $@

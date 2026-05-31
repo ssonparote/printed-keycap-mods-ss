@@ -20,3 +20,17 @@ module thumb_key(key="T1") {
 }
 
 thumb_key();
+
+module thumb_key_trap() {
+  keycap(keyID   = 15,
+	 cutLen  = 0,
+	 Stem    = true,
+	 StemRot = 0,
+	 Dish    = true,
+	 Stab    = 0,
+	 visualizeDish = false,
+	 crossSection  = false,
+	 homeDot = false,
+	 Legends = false
+	 );
+}
