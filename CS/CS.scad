@@ -33,26 +33,18 @@ module CS_from_source(type="R3L") {
   $fn=60;
 
   // --- main rows (sculpted profile) ---
-  if (type == "R1L") {
+  // Rows are X-symmetric, so L and R share the same cap shape; the outboard chamfer side is
+  // set by the tilt handedness (the `other` flag), driven per-half at the dispatch below.
+  if (type == "R1L" || type == "R1R") {
     mirror([0,1,0]) sculpted_key("R1");
-  } else if (type == "R1R") {
-    mirror([1,0,0]) mirror([0,1,0]) sculpted_key("R1");
-  } else if (type == "R2L") {
+  } else if (type == "R2L" || type == "R2R") {
     mirror([0,1,0]) sculpted_key("R4");
-  } else if (type == "R2R") {
-    mirror([1,0,0]) mirror([0,1,0]) sculpted_key("R4");
-  } else if (type == "R3L") {
+  } else if (type == "R3L" || type == "R3R") {
     sculpted_key("R3");
-  } else if (type == "R3R") {
-    mirror([1,0,0]) sculpted_key("R3");
-  } else if (type == "R3-homing-L") {
+  } else if (type == "R3-homing-L" || type == "R3-homing-R") {
     sculpted_key("R3", homing=true);
-  } else if (type == "R3-homing-R") {
-    mirror([1,0,0]) sculpted_key("R3", homing=true);
-  } else if (type == "R4L") {
+  } else if (type == "R4L" || type == "R4R") {
     invert_offset() sculpted_key("R4");
-  } else if (type == "R4R") {
-    mirror([1,0,0]) invert_offset() sculpted_key("R4");
 
   // --- side columns (thumb profile); transforms preserved from the old side-column entries ---
   } else if (type == "R2-COL-L") {
@@ -80,15 +72,20 @@ module CS_from_source(type="R3L") {
   } else if (type == "T1R-trap") {
     mirror([1,0,0]) invert_offset(x=false) thumb_key_trap();
 
-  // --- convex inner-column / thumb key ---
-  } else if (type == "R3xL") {
+  // --- convex inner-column / thumb key (X-symmetric; chamfer side via tilt handedness) ---
+  } else if (type == "R3xL" || type == "R3xR") {
     convex_key("R3x");
-  } else if (type == "R3xR") {
-    mirror([1,0,0]) convex_key("R3x");
   } else {
     assert(false, str("unrecognized Chicago Steno keycap type: ", type));
   }
 }
+
+// Right-half keycaps: the outboard bed-cut chamfer must fall on the right edge, which is
+// driven by the tilt handedness (printable/bed_cut `other=true`), not by mirroring the cap.
+function cs_is_right(type) =
+  len([for (n = ["R1R","R2R","R3R","R3-homing-R","R4R",
+                 "R2-COL-R","R3-COL-R","R4-COL-R","T1R","T1R-trap","R3xR"])
+       if (n == type) 1]) > 0;
 
 // Lev's reference STLs have no L/R-half cut variants, so R-half = X-mirror of the L import.
 module CS_prerendered(type="R3L") {
@@ -149,11 +146,16 @@ module orient(other=false) {
       children();
 }
 
-// bed_cut bakes the bed-adhesion cuts into the cap's NATIVE upright frame, so the
-// upright cap you inspect already carries the angled flat print faces -- the cut is
-// part of the design, not bolted on after tilting. It does this by orienting forward,
-// subtracting the cut tools in the print frame, then orienting back (R then R^-1), so
-// the cuts land exactly where they will sit on the bed. printable() only re-applies R.
+// bed_cut bakes the bed-adhesion cut into the cap's NATIVE upright frame, so the upright
+// cap you inspect already carries the angled flat print face -- the cut is part of the
+// design, not bolted on after tilting. It orients forward, subtracts the cut tool in the
+// print frame, then orients back (R then R^-1) so the cut lands exactly where it sits on
+// the bed. printable() only re-applies R.
+//
+// ASYMMETRIC: a single horizontal slab at z=-cut_distance is both the flat bed-contact face
+// and the outboard chamfer. For the base (L-half) cap it falls on the LEFT/outer edge; the
+// R-half cap is mirror([1,0,0]) of it (see CS_from_source), flipping the chamfer to the
+// right/outer edge. The inner edge stays full -> tighter inner gaps.
 module bed_cut(other=false) {
   // R^-1: undo orient(), leaving the cut cap sitting upright.
   rotate([0,(other ? -1 : 1)*45,0])
@@ -163,7 +165,6 @@ module bed_cut(other=false) {
     h=5;
     cut_distance=4.9;
     translate([0,0,-h/2 - cut_distance]) cube([40,40,h], center=true);
-    rotate([0,90,-45]) translate([0,0,-h/2 - cut_distance]) cube([40,40,h], center=true);
   }
 }
 
@@ -199,7 +200,8 @@ if (is_undef(keycap)) {
     }
   }
 } else {
-  printable() bed_cut() CS(keycap);
+  hand = cs_is_right(keycap);   // right half -> chamfer on the right (outer) edge
+  printable(other=hand) bed_cut(other=hand) CS(keycap);
 }
 
 debug_orientation=false;
