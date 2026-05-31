@@ -163,7 +163,8 @@ module bed_cut(other=false) {
   difference(){
     orient(other) children();
     h=5;
-    cut_distance=4.9;
+    cut_distance=5.3;  // 4.9 = aggressive (more bed contact); 5.6 = minimal. 5.3 eases the
+                       // chamfer to recover outer-edge width (printed with raft+supports).
     translate([0,0,-h/2 - cut_distance]) cube([40,40,h], center=true);
   }
 }

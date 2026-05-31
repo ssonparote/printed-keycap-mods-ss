@@ -58,8 +58,20 @@ bed-contact face and the outboard chamfer. The chamfer side is set by the **tilt
 (`other` flag), driven per-half by `cs_is_right(type)` at the dispatch: L-half → chamfer left,
 R-half → chamfer right. The inner edge stays full → tighter inner gaps. Rows are X-symmetric so
 L/R share the cap shape (no cap mirror — the chamfer flip comes purely from `other`). Verified:
-R3L print pose sits on a flat 14.3×14.3 mm face at z=−4.9. Remaining: Phase 2C dimension
-(measure cut-edge deficit, widen base to ~18.15 mm).
+R3L print pose sits on a flat 14.3×14.3 mm face at z=−4.9.
+
+**Phase 2C dimension (done):** measured the upright R3L footprint — the uncut edges already
+render ~18.16 mm at the old 18.05 base param (corner geometry), so only the outer chamfer was
+undersized. Applied a hybrid: eased the chamfer (`cut_distance` 4.9→**5.3** in `bed_cut`) and
+widened the base (keyParameters `[0..1]` 18.05→**18.15** for rows keyID 0/1/15 and T1 thumb
+keyID 2). Result: uncut edge **18.26 mm**, cut-axis widest **18.08 mm** (was 17.88) — axis
+asymmetry down to 0.18 mm. Printed with raft + supports at slow speed, so the smaller bed face
+is acceptable.
+
+**Known gap:** the **side-column** keys (`R*-COL-*`, thumb profile keyID 0/1) are still
+**Choc-sized 17.20×16.00**, not MX — they were never rescaled. If the Sofle uses them they need
+an MX rescale (watch for the `DishShape2` shelf, like T1). Convex `R3x` (keyID 0/1) is a 1.5u/2u
+special and left as-is.
 
 ## Orientation model: `orient()` / `bed_cut()` / `printable()`
 
