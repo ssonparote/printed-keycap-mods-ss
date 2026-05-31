@@ -33,13 +33,28 @@ python3 make-3mf.py
 
 **CGAL errors are expected** — they appear for all keys including the working R3. OpenSCAD 2021 produces them for this profile's complex sweep geometry; the STL output is still valid.
 
-## Key types
+## Key types / naming
 
-| Type | Description | Status |
-|------|-------------|--------|
-| R1, R2, R3, R3-homing, R4 | Standard row keys | ✅ Working |
-| T1L, T1R | 1u thumb keys (left/right) | ✅ Dish + chop fixed (verify render) |
-| T1L-trap, T1R-trap | Trapezoidal outer thumb keys | 🔜 Future task |
+**`L`/`R` = keyboard HALF** (uniformly). Side-column keys carry a `COL` tag so the suffix is
+not overloaded with column position. The R-half cap is the `mirror([1,0,0])` of the L-half
+cap — this flips the asymmetric outboard bed cut to the opposite (outer) edge for the other
+half. (Dispatch in `CS/CS.scad` `CS_from_source`; Makefile `CS_PROFILE`/`SOFLE_PROFILES`.)
+
+| Group | Types | Source | Status |
+|-------|-------|--------|--------|
+| Main rows | `R1L/R1R R2L/R2R R3L/R3R R3-homing-L/R R4L/R4R` | `sculpted_key` (keyID 0/1/15) | ✅ render OK |
+| Side columns | `R2-COL-L/R R3-COL-L/R R4-COL-L/R` | `thumb_key("R2L"/"R3L")` (keyID 0/1) | ✅ render OK |
+| Thumbs | `T1L T1R` | `thumb_key("T1")` (keyID 2) | ✅ dish fixed |
+| Thumb traps | `T1L-trap T1R-trap` | `thumb_key_trap()` (keyID 15) | 🔜 future |
+| Convex | `R3xL R3xR` | `convex_key("R3x")` | ✅ render OK |
+
+**Migration note:** old bare names (`R1`,`R2`,`R3`,`R3-homing`,`R4`) and old side-column
+names (old `R2L/R3L/R4L`…) are **gone** — they now mean half-variants / `COL` keys. Anything
+referencing the old STL names needs updating. **`make-3mf.py` still uses the old `CS-R1`…
+names** and must be migrated before its plates will pack (it fails loudly on missing STLs).
+
+**Cut status:** `bed_cut()` is still the symmetric two-cube cut (Phase 1). Making it a single
+**outboard** chamfer is Phase 2B (next).
 
 ## Orientation model: `orient()` / `bed_cut()` / `printable()`
 

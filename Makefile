@@ -33,13 +33,13 @@ cs-index-solo: $(addsuffix .stl,$(addprefix things/CS-$(KEYBOARD)-index-,$(TPKEY
 CS_TP_TARGETS=$(addsuffix .stl,$(addprefix things/CS-$(KEYBOARD)-middle-,$(TPKEYS))) $(addsuffix .stl,$(addprefix things/CS-$(KEYBOARD)-index-,$(TPKEYS)))
 
 # skipping redundant key sculpts: R2R R3R R4R
-CS_PROFILE=R1 R2 R3 R3-homing R4 T1L T1R T1L-trap T1R-trap
+CS_PROFILE=R1L R1R R2L R2R R3L R3R R3-homing-L R3-homing-R R4L R4R R2-COL-L R2-COL-R R3-COL-L R3-COL-R R4-COL-L R4-COL-R T1L T1R T1L-trap T1R-trap
 
 CS_TARGETS=$(addsuffix .stl,$(addprefix things/CS-,$(CS_PROFILE)))
 
 cs: $(CS_TARGETS)
 
-SOFLE_PROFILES=R1 R2 R3 R3-homing R4 T1L T1R
+SOFLE_PROFILES=R1L R1R R2L R2R R3L R3R R3-homing-L R3-homing-R R4L R4R R2-COL-L R2-COL-R R3-COL-L R3-COL-R R4-COL-L R4-COL-R T1L T1R
 SOFLE_TARGETS=$(addsuffix .stl,$(addprefix things/sofle-,$(SOFLE_PROFILES)))
 
 sofle-plates: $(SOFLE_TARGETS)

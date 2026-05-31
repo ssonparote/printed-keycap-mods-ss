@@ -25,38 +25,51 @@ module invert_offset(x=true, y=true, z=false) {
   }
 }
 
-module CS_from_source(type="R3") {
+// Naming: L/R = keyboard HALF. The L-half cap keeps the original transform; the R-half cap
+// is its X-mirror (mirror([1,0,0])), which flips the asymmetric outboard cut to the opposite
+// edge so the two halves mirror each other. Side-column keys carry a COL tag so L/R is not
+// overloaded with column position. Thumbs already used L/R for the half.
+module CS_from_source(type="R3L") {
   $fn=60;
 
-  if (type == "R3") {
-    sculpted_key(type);
-  } else if (type == "R3-homing") {
-    sculpted_key("R3", homing=true);
-  } else if (type == "R1") {
-    mirror([0,1,0]) sculpted_key(type);
-  } else if (type == "R2") {
+  // --- main rows (sculpted profile) ---
+  if (type == "R1L") {
+    mirror([0,1,0]) sculpted_key("R1");
+  } else if (type == "R1R") {
+    mirror([1,0,0]) mirror([0,1,0]) sculpted_key("R1");
+  } else if (type == "R2L") {
     mirror([0,1,0]) sculpted_key("R4");
-  } else if (type == "R4") {
-    invert_offset() sculpted_key(type);
-  } else if (type == "R2L"){
-    mirror([1,0,0]) invert_offset(y=false) thumb_key("R2L");
-  } else if( type == "R4R") {
-    mirror([1,0,0]) invert_offset(x=false) thumb_key("R2L");
-  } else if (type == "R3L"){
-    // smoother feel if you don't print with the curved side at the top
-    rotate([0,0,180])
-      invert_offset()
-      thumb_key("R3L");
+  } else if (type == "R2R") {
+    mirror([1,0,0]) mirror([0,1,0]) sculpted_key("R4");
+  } else if (type == "R3L") {
+    sculpted_key("R3");
   } else if (type == "R3R") {
-    // smoother feel if you don't print with the curved side at the top
-    rotate([0,0,180])
-      thumb_key("R3L");
+    mirror([1,0,0]) sculpted_key("R3");
+  } else if (type == "R3-homing-L") {
+    sculpted_key("R3", homing=true);
+  } else if (type == "R3-homing-R") {
+    mirror([1,0,0]) sculpted_key("R3", homing=true);
   } else if (type == "R4L") {
+    invert_offset() sculpted_key("R4");
+  } else if (type == "R4R") {
+    mirror([1,0,0]) invert_offset() sculpted_key("R4");
+
+  // --- side columns (thumb profile); transforms preserved from the old side-column entries ---
+  } else if (type == "R2-COL-L") {
+    mirror([1,0,0]) invert_offset(y=false) thumb_key("R2L");
+  } else if (type == "R4-COL-R") {
+    mirror([1,0,0]) invert_offset(x=false) thumb_key("R2L");
+  } else if (type == "R4-COL-L") {
     // smoother feel if you don't print with the curved side at the top
     rotate([0,0,180]) invert_offset() thumb_key("R2L");
-  } else if (type == "R2R") {
-    // smoother feel if you don't print with the curved side at the top
+  } else if (type == "R2-COL-R") {
     rotate([0,0,180]) thumb_key("R2L");
+  } else if (type == "R3-COL-L") {
+    rotate([0,0,180]) invert_offset() thumb_key("R3L");
+  } else if (type == "R3-COL-R") {
+    rotate([0,0,180]) thumb_key("R3L");
+
+  // --- thumbs (L/R already = half) ---
   } else if (type == "T1L") {
     // smoother feel if you don't print with the curved side at the top
     rotate([0,0,180]) invert_offset() thumb_key("T1");
@@ -66,36 +79,57 @@ module CS_from_source(type="R3") {
     rotate([0,0,180]) invert_offset() thumb_key_trap();
   } else if (type == "T1R-trap") {
     mirror([1,0,0]) invert_offset(x=false) thumb_key_trap();
-  } else if (type == "R3x") {
-    convex_key(type);
+
+  // --- convex inner-column / thumb key ---
+  } else if (type == "R3xL") {
+    convex_key("R3x");
+  } else if (type == "R3xR") {
+    mirror([1,0,0]) convex_key("R3x");
   } else {
     assert(false, str("unrecognized Chicago Steno keycap type: ", type));
   }
 }
 
-module CS_prerendered(type="R3") {
-  if (type == "R3") {
+// Lev's reference STLs have no L/R-half cut variants, so R-half = X-mirror of the L import.
+module CS_prerendered(type="R3L") {
+  // --- main rows ---
+  if (type == "R3L") {
     import("levs-CS/r3-middle-row.stl");
-  } else if (type == "R3-homing") {
+  } else if (type == "R3R") {
+    mirror([1,0,0]) import("levs-CS/r3-middle-row.stl");
+  } else if (type == "R3-homing-L") {
     import("levs-CS/r3-homing.stl");
-  } else if (type == "R2") {
+  } else if (type == "R3-homing-R") {
+    mirror([1,0,0]) import("levs-CS/r3-homing.stl");
+  } else if (type == "R2L") {
     rotate([0,0, 180]) import("levs-CS/r2r4-topbottom-rows.stl");
-  } else if (type == "R4") {
+  } else if (type == "R2R") {
+    mirror([1,0,0]) rotate([0,0, 180]) import("levs-CS/r2r4-topbottom-rows.stl");
+  } else if (type == "R4L") {
     import("levs-CS/r2r4-topbottom-rows.stl");
-  } else if (type == "R2L" || type == "R4R") {
+  } else if (type == "R4R") {
+    mirror([1,0,0]) import("levs-CS/r2r4-topbottom-rows.stl");
+
+  // --- side columns ---
+  } else if (type == "R2-COL-L" || type == "R4-COL-R") {
     import("levs-CS/r2r4L-side-columns.stl");
-  } else if (type == "R3L" || type == "R3R") {
-    //rotate([0,0, 180])
-      import("levs-CS/r3L-side-columns.stl");
-  } else if (type == "R4L" || type == "R2R") {
+  } else if (type == "R3-COL-L" || type == "R3-COL-R") {
+    import("levs-CS/r3L-side-columns.stl");
+  } else if (type == "R4-COL-L" || type == "R2-COL-R") {
     mirror([0,1,0]) import("levs-CS/r2r4L-side-columns.stl");
+
+  // --- thumbs ---
   } else if (type == "T1L") {
     rotate([0,0,180])
       mirror([1,0,0]) import("levs-CS/thumb-1u.stl");
   } else if (type == "T1R") {
     import("levs-CS/thumb-1u.stl");
-  } else if (type == "R3x") {
+
+  // --- convex ---
+  } else if (type == "R3xL") {
     import("levs-CS/convex-1u-for-thumbs-or-inner-index-column.stl");
+  } else if (type == "R3xR") {
+    mirror([1,0,0]) import("levs-CS/convex-1u-for-thumbs-or-inner-index-column.stl");
   } else {
     assert(false, str("unrecognized Chicago Steno keycap type: ", type));
   }
@@ -146,22 +180,22 @@ lateral=true;
 if (is_undef(keycap)) {
   let(x_spacing = is_list(grid_spacing) ? grid_spacing.x : grid_spacing, y_spacing = is_list(grid_spacing) ? grid_spacing.y : grid_spacing, stagger = is_undef(grid_stagger) ? 0 : grid_stagger ? y_spacing/2 : 0) {
     if (!index) { // middle
-      if (is_undef(tpkey) || tpkey == "R3-homing") printable() bed_cut() trackpoint_notch(far=true) CS("R3");
-      if (is_undef(tpkey) || tpkey == "R2-near") translate(is_undef(tpkey) ? [0,y_spacing,0] : [0,0,0]) printable() bed_cut() trackpoint_notch(far=false) CS("R2R");
-      if (is_undef(tpkey) || tpkey == "R3") translate(is_undef(tpkey) ? [x_spacing,stagger,0] : [0,0,0]) printable(other=true) bed_cut(other=true) mirror([1,0,0]) trackpoint_notch(far=false, index=true) CS("R3R");
-      if (is_undef(tpkey) || tpkey == "R2-far") translate(is_undef(tpkey) ? [x_spacing,stagger+y_spacing,0] : [0,0,0]) printable(other=true) bed_cut(other=true) mirror([1,0,0]) trackpoint_notch(far=true, index=true) CS("R2");
+      if (is_undef(tpkey) || tpkey == "R3-homing") printable() bed_cut() trackpoint_notch(far=true) CS("R3L");
+      if (is_undef(tpkey) || tpkey == "R2-near") translate(is_undef(tpkey) ? [0,y_spacing,0] : [0,0,0]) printable() bed_cut() trackpoint_notch(far=false) CS("R2-COL-R");
+      if (is_undef(tpkey) || tpkey == "R3") translate(is_undef(tpkey) ? [x_spacing,stagger,0] : [0,0,0]) printable(other=true) bed_cut(other=true) mirror([1,0,0]) trackpoint_notch(far=false, index=true) CS("R3-COL-R");
+      if (is_undef(tpkey) || tpkey == "R2-far") translate(is_undef(tpkey) ? [x_spacing,stagger+y_spacing,0] : [0,0,0]) printable(other=true) bed_cut(other=true) mirror([1,0,0]) trackpoint_notch(far=true, index=true) CS("R2L");
 
     } else { // index
 
-      if ((is_undef(tpkey) || tpkey == "R3-homing") && !lateral) printable(other=true) bed_cut(other=true) trackpoint_notch($x=-1,$y=1,far=false, index=true) CS("R3-homing");
-      if ((is_undef(tpkey) || tpkey == "R2-far") && !lateral) translate(is_undef(tpkey) ? [0,y_spacing,0] : [0,0,0]) printable(other=true) bed_cut(other=true) trackpoint_notch($x=-1,$y=-1,far=true) CS("R2");
-      if ((is_undef(tpkey) || tpkey == "R3") && !lateral) translate(is_undef(tpkey) ? [x_spacing,stagger,0] : [0,0,0]) printable() bed_cut() trackpoint_notch($x=1,$y=1,far=true) CS("R3");
-      if ((is_undef(tpkey) || tpkey == "R2-near") && !lateral) translate(is_undef(tpkey) ? [x_spacing,stagger+y_spacing,0] : [0,0,0]) printable() bed_cut() trackpoint_notch($x=1,$y=-1,far=false) CS("R2");
+      if ((is_undef(tpkey) || tpkey == "R3-homing") && !lateral) printable(other=true) bed_cut(other=true) trackpoint_notch($x=-1,$y=1,far=false, index=true) CS("R3-homing-L");
+      if ((is_undef(tpkey) || tpkey == "R2-far") && !lateral) translate(is_undef(tpkey) ? [0,y_spacing,0] : [0,0,0]) printable(other=true) bed_cut(other=true) trackpoint_notch($x=-1,$y=-1,far=true) CS("R2L");
+      if ((is_undef(tpkey) || tpkey == "R3") && !lateral) translate(is_undef(tpkey) ? [x_spacing,stagger,0] : [0,0,0]) printable() bed_cut() trackpoint_notch($x=1,$y=1,far=true) CS("R3L");
+      if ((is_undef(tpkey) || tpkey == "R2-near") && !lateral) translate(is_undef(tpkey) ? [x_spacing,stagger+y_spacing,0] : [0,0,0]) printable() bed_cut() trackpoint_notch($x=1,$y=-1,far=false) CS("R2L");
 
-      if ((is_undef(tpkey) || tpkey == "R3-homing") && lateral) printable(other=true) bed_cut(other=true) trackpoint_notch($x=-1,$y=1,far=false) CS("R3R");
-      if ((is_undef(tpkey) || tpkey == "R2-far") && lateral) translate(is_undef(tpkey) ? [0,y_spacing,0] : [0,0,0]) printable(other=true) bed_cut(other=true) trackpoint_notch($x=-1,$y=-1, far=true) CS("R2R");
-      if ((is_undef(tpkey) || tpkey == "R3") && lateral) translate(is_undef(tpkey) ? [x_spacing,stagger,0] : [0,0,0]) printable() bed_cut() trackpoint_notch($x=1,$y=1,far=true) rotate([0,0,180]) CS("R3L");
-      if ((is_undef(tpkey) || tpkey == "R2-near") && lateral) translate(is_undef(tpkey) ? [x_spacing,stagger+y_spacing,0] : [0,0,0]) printable() bed_cut() trackpoint_notch($x=1,$y=-1,far=false) rotate([0,0,180]) CS("R2L");
+      if ((is_undef(tpkey) || tpkey == "R3-homing") && lateral) printable(other=true) bed_cut(other=true) trackpoint_notch($x=-1,$y=1,far=false) CS("R3-COL-R");
+      if ((is_undef(tpkey) || tpkey == "R2-far") && lateral) translate(is_undef(tpkey) ? [0,y_spacing,0] : [0,0,0]) printable(other=true) bed_cut(other=true) trackpoint_notch($x=-1,$y=-1, far=true) CS("R2-COL-R");
+      if ((is_undef(tpkey) || tpkey == "R3") && lateral) translate(is_undef(tpkey) ? [x_spacing,stagger,0] : [0,0,0]) printable() bed_cut() trackpoint_notch($x=1,$y=1,far=true) rotate([0,0,180]) CS("R3-COL-L");
+      if ((is_undef(tpkey) || tpkey == "R2-near") && lateral) translate(is_undef(tpkey) ? [x_spacing,stagger+y_spacing,0] : [0,0,0]) printable() bed_cut() trackpoint_notch($x=1,$y=-1,far=false) rotate([0,0,180]) CS("R2-COL-L");
     }
   }
 } else {
